@@ -3,23 +3,37 @@ package graphql
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/shurcooL/graphql/ident"
 )
 
-func constructQuery(v interface{}, variables map[string]interface{}) string {
-	query := query(v)
+func ConstructQuery(v interface{}, variables map[string]interface{}) (string, map[string]interface{}) {
+	query := query(v, variables)
 	if len(variables) > 0 {
-		return "query(" + queryArguments(variables) + ")" + query
+		newVariables := map[string]interface{}{}
+		for k, v := range variables {
+			if v2, ok := v.([]map[string]interface{}); ok {
+				for index, subMap := range v2 {
+					for subKey, subV := range subMap {
+						newVariables[fmt.Sprintf(`%s__%d__%s`, k, index, subKey)] = subV
+					}
+				}
+			} else {
+				newVariables[k] = v
+			}
+		}
+		return "query(" + queryArguments(newVariables) + ")" + query, newVariables
 	}
-	return query
+	return query, variables
 }
 
-func constructMutation(v interface{}, variables map[string]interface{}) string {
-	query := query(v)
+func ConstructMutation(v interface{}, variables map[string]interface{}) string {
+	query := query(v, variables)
 	if len(variables) > 0 {
 		return "mutation(" + queryArguments(variables) + ")" + query
 	}
@@ -86,18 +100,18 @@ func writeArgumentType(w io.Writer, t reflect.Type, value bool) {
 // a minified query string from the provided struct v.
 //
 // E.g., struct{Foo Int, BarBaz *Boolean} -> "{foo,barBaz}".
-func query(v interface{}) string {
+func query(v interface{}, variables map[string]interface{}) string {
 	var buf bytes.Buffer
-	writeQuery(&buf, reflect.TypeOf(v), false)
+	writeQuery(&buf, reflect.TypeOf(v), false, variables)
 	return buf.String()
 }
 
 // writeQuery writes a minified query for t to w.
 // If inline is true, the struct fields of t are inlined into parent struct.
-func writeQuery(w io.Writer, t reflect.Type, inline bool) {
+func writeQuery(w io.Writer, t reflect.Type, inline bool, variables map[string]interface{}) {
 	switch t.Kind() {
 	case reflect.Ptr, reflect.Slice:
-		writeQuery(w, t.Elem(), false)
+		writeQuery(w, t.Elem(), false, variables)
 	case reflect.Struct:
 		// If the type implements json.Unmarshaler, it's a scalar. Don't expand it.
 		if reflect.PtrTo(t).Implements(jsonUnmarshaler) {
@@ -113,14 +127,36 @@ func writeQuery(w io.Writer, t reflect.Type, inline bool) {
 			f := t.Field(i)
 			value, ok := f.Tag.Lookup("graphql")
 			inlineField := f.Anonymous && !ok
-			if !inlineField {
-				if ok {
-					io.WriteString(w, value)
-				} else {
-					io.WriteString(w, ident.ParseMixedCaps(f.Name).ToLowerCamelCase())
+
+			extendByKey, ifExtend := f.Tag.Lookup("graphql-extend-by")
+			if ifExtend {
+				times := len(variables[extendByKey].([]map[string]interface{}))
+				for i := 0; i < times; i++ {
+					if i != 0 {
+						io.WriteString(w, ",")
+					}
+					io.WriteString(w, fmt.Sprintf(`%s__%d:`, extendByKey, i))
+					if !inlineField {
+						if ok {
+							io.WriteString(w, strings.ReplaceAll(value, `$`, fmt.Sprintf(`$%s__%d__`, extendByKey, i)))
+						} else {
+							io.WriteString(w, ident.ParseMixedCaps(f.Name).ToLowerCamelCase())
+						}
+					}
+					writeQuery(w, f.Type, inlineField, variables)
 				}
+
+			} else {
+				if !inlineField {
+					if ok {
+						io.WriteString(w, value)
+					} else {
+						io.WriteString(w, ident.ParseMixedCaps(f.Name).ToLowerCamelCase())
+					}
+				}
+				writeQuery(w, f.Type, inlineField, variables)
 			}
-			writeQuery(w, f.Type, inlineField)
+
 		}
 		if !inline {
 			io.WriteString(w, "}")

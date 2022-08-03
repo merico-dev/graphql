@@ -8,9 +8,10 @@ import (
 
 func TestConstructQuery(t *testing.T) {
 	tests := []struct {
-		inV         interface{}
-		inVariables map[string]interface{}
-		want        string
+		inV           interface{}
+		inVariables   map[string]interface{}
+		want          string
+		wantVariables map[string]interface{}
 	}{
 		{
 			inV: struct {
@@ -227,11 +228,40 @@ func TestConstructQuery(t *testing.T) {
 			}{},
 			want: `{viewer{login,createdAt,id,databaseId}}`,
 		},
+		{
+			inV: struct {
+				Viewer struct {
+					Login string
+				} `graphql:"viewer(name: $name)" graphql-extend-by:"users"`
+			}{},
+			inVariables: map[string]interface{}{
+				"users": []map[string]interface{}{
+					{
+						"name": String("a"),
+					},
+					{
+						"name": String("b"),
+					},
+					{
+						"name": String("c"),
+					},
+				},
+			},
+			want: `query($users__0__name:String!$users__1__name:String!$users__2__name:String!){users__0:viewer(name: $users__0__name){login},users__1:viewer(name: $users__1__name){login},users__2:viewer(name: $users__2__name){login}}`,
+			wantVariables: map[string]interface{}{
+				"users__0__name": String("a"),
+				"users__1__name": String("a"),
+				"users__2__name": String("a"),
+			},
+		},
 	}
 	for _, tc := range tests {
-		got := constructQuery(tc.inV, tc.inVariables)
-		if got != tc.want {
-			t.Errorf("\ngot:  %q\nwant: %q\n", got, tc.want)
+		gotQuery, gotVariables := ConstructQuery(tc.inV, tc.inVariables)
+		if gotQuery != tc.want {
+			t.Errorf("\ngot:  %q\nwant: %q\n", gotQuery, tc.want)
+		}
+		if tc.wantVariables != nil && len(gotVariables) != len(tc.wantVariables) {
+			t.Errorf("\ngot:  %q\nwant: %q\n", gotVariables, tc.wantVariables)
 		}
 	}
 }
@@ -264,7 +294,7 @@ func TestConstructMutation(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		got := constructMutation(tc.inV, tc.inVariables)
+		got := ConstructMutation(tc.inV, tc.inVariables)
 		if got != tc.want {
 			t.Errorf("\ngot:  %q\nwant: %q\n", got, tc.want)
 		}
