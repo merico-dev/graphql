@@ -1,7 +1,7 @@
 graphql
 =======
 
-[![Build Status](https://travis-ci.org/shurcooL/graphql.svg?branch=master)](https://travis-ci.org/shurcooL/graphql) [![GoDoc](https://godoc.org/github.com/shurcooL/graphql?status.svg)](https://godoc.org/github.com/shurcooL/graphql)
+[![Build Status](https://travis-ci.org/shurcooL/graphql.svg?branch=master)](https://travis-ci.org/shurcooL/graphql) [![GoDoc](https://godoc.org/github.com/merico-dev/graphql?status.svg)](https://godoc.org/github.com/merico-dev/graphql)
 
 Package `graphql` provides a GraphQL client implementation.
 
@@ -13,7 +13,7 @@ Installation
 `graphql` requires Go version 1.8 or later.
 
 ```bash
-go get -u github.com/shurcooL/graphql
+go get -u github.com/merico-dev/graphql
 ```
 
 Usage
@@ -281,9 +281,9 @@ Directories
 
 | Path                                                                                   | Synopsis                                                                                                        |
 |----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| [example/graphqldev](https://godoc.org/github.com/shurcooL/graphql/example/graphqldev) | graphqldev is a test program currently being used for developing graphql package.                               |
-| [ident](https://godoc.org/github.com/shurcooL/graphql/ident)                           | Package ident provides functions for parsing and converting identifier names between various naming convention. |
-| [internal/jsonutil](https://godoc.org/github.com/shurcooL/graphql/internal/jsonutil)   | Package jsonutil provides a function for decoding JSON into a GraphQL query data structure.                     |
+| [example/graphqldev](https://godoc.org/github.com/merico-dev/graphql/example/graphqldev) | graphqldev is a test program currently being used for developing graphql package.                               |
+| [ident](https://godoc.org/github.com/merico-dev/graphql/ident)                           | Package ident provides functions for parsing and converting identifier names between various naming convention. |
+| [internal/jsonutil](https://godoc.org/github.com/merico-dev/graphql/internal/jsonutil)   | Package jsonutil provides a function for decoding JSON into a GraphQL query data structure.                     |
 
 License
 -------

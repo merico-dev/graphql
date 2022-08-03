@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/shurcooL/graphql/ident"
+	"github.com/merico-dev/graphql/ident"
 )
 
 func ConstructQuery(v interface{}, variables map[string]interface{}) (string, map[string]interface{}) {
