@@ -127,32 +127,41 @@ func writeQuery(w io.Writer, t reflect.Type, inline bool, variables map[string]i
 			f := t.Field(i)
 			value, ok := f.Tag.Lookup("graphql")
 			inlineField := f.Anonymous && !ok
+			graphqlValue := ``
+			graphqlVar := ``
+			if !inlineField {
+				if ok {
+					graphqlValue = value
+					index := strings.IndexAny(graphqlValue, `(:[$!@`)
+					if index == -1 {
+						graphqlVar = graphqlValue
+					} else {
+						graphqlVar = graphqlValue[:index]
+					}
+				} else {
+					graphqlValue = ident.ParseMixedCaps(f.Name).ToLowerCamelCase()
+					graphqlVar = value
+				}
+			}
 
-			extendByKey, ifExtend := f.Tag.Lookup("graphql-extend-by")
-			if ifExtend {
-				times := len(variables[extendByKey].([]map[string]interface{}))
+			extendByKey, ifExtend := f.Tag.Lookup("graphql-extend")
+			if ifExtend && extendByKey == `true` {
+				fmt.Println(graphqlVar)
+				times := len(variables[graphqlVar].([]map[string]interface{}))
 				for i := 0; i < times; i++ {
 					if i != 0 {
 						io.WriteString(w, ",")
 					}
-					io.WriteString(w, fmt.Sprintf(`%s__%d:`, extendByKey, i))
+					io.WriteString(w, fmt.Sprintf(`%s__%d:`, graphqlVar, i))
 					if !inlineField {
-						if ok {
-							io.WriteString(w, strings.ReplaceAll(value, `$`, fmt.Sprintf(`$%s__%d__`, extendByKey, i)))
-						} else {
-							io.WriteString(w, ident.ParseMixedCaps(f.Name).ToLowerCamelCase())
-						}
+						io.WriteString(w, strings.ReplaceAll(graphqlValue, `$`, fmt.Sprintf(`$%s__%d__`, graphqlVar, i)))
 					}
 					writeQuery(w, f.Type, inlineField, variables)
 				}
 
 			} else {
 				if !inlineField {
-					if ok {
-						io.WriteString(w, value)
-					} else {
-						io.WriteString(w, ident.ParseMixedCaps(f.Name).ToLowerCamelCase())
-					}
+					io.WriteString(w, graphqlValue)
 				}
 				writeQuery(w, f.Type, inlineField, variables)
 			}

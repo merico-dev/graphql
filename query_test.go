@@ -230,12 +230,12 @@ func TestConstructQuery(t *testing.T) {
 		},
 		{
 			inV: struct {
-				Viewer struct {
+				Viewer []struct {
 					Login string
-				} `graphql:"viewer(name: $name)" graphql-extend-by:"users"`
+				} `graphql:"user(name: $name)" graphql-extend:"true"`
 			}{},
 			inVariables: map[string]interface{}{
-				"users": []map[string]interface{}{
+				"user": []map[string]interface{}{
 					{
 						"name": String("a"),
 					},
@@ -247,7 +247,7 @@ func TestConstructQuery(t *testing.T) {
 					},
 				},
 			},
-			want: `query($users__0__name:String!$users__1__name:String!$users__2__name:String!){users__0:viewer(name: $users__0__name){login},users__1:viewer(name: $users__1__name){login},users__2:viewer(name: $users__2__name){login}}`,
+			want: `query($user__0__name:String!$user__1__name:String!$user__2__name:String!){user__0:user(name: $user__0__name){login},user__1:user(name: $user__1__name){login},user__2:user(name: $user__2__name){login}}`,
 			wantVariables: map[string]interface{}{
 				"users__0__name": String("a"),
 				"users__1__name": String("a"),

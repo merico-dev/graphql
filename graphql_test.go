@@ -11,6 +11,40 @@ import (
 	"github.com/merico-dev/graphql"
 )
 
+func TestClient_Query_MergeItems(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mustWrite(w, `{
+			"data": {
+				"node__1": {
+					"id": "1"
+				},
+				"node__2": {
+					"id": "2"
+				}
+			}
+		}`)
+	})
+	client := graphql.NewClient("/graphql", &http.Client{Transport: localRoundTripper{handler: mux}})
+
+	var q struct {
+		AnotherName []struct {
+			ID graphql.ID
+		} `graphql:"node(id: \"1\")"`
+	}
+	err := client.Query(context.Background(), &q, nil)
+	if err != nil {
+		t.Fatal("got error: non-nil, want: nil")
+	}
+	if q.AnotherName == nil {
+		t.Fatal("q.AnotherName got error: nil, want: non-nil")
+	}
+	if q.AnotherName[0].ID != "1" || q.AnotherName[1].ID != "2" {
+		t.Errorf("got wrong q.Node1: %v", q.AnotherName)
+	}
+}
+
 func TestClient_Query_partialDataWithErrorResponse(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, req *http.Request) {

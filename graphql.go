@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/merico-dev/graphql/internal/jsonutil"
 	"golang.org/x/net/context/ctxhttp"
@@ -38,7 +39,36 @@ func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]
 	// TODO: Consider including response body in returned error, if deemed helpful.
 	data, dataErr := c.do(ctx, query, q, variables)
 	if data != nil {
-		err := jsonutil.UnmarshalGraphQL(*data, q)
+		// merge XXX__N to XXX as a slice
+		rawData := map[string]interface{}{}
+		s, err := data.MarshalJSON()
+		if err != nil {
+			// TODO: Consider including response body in returned error, if deemed helpful.
+			return err
+		}
+		err = json.Unmarshal(s, &rawData)
+		if err != nil {
+			// TODO: Consider including response body in returned error, if deemed helpful.
+			return err
+		}
+		for k, v := range rawData {
+			index := strings.Index(k, `__`)
+			if index != -1 {
+				subList, ok := rawData[k[:index]]
+				if ok {
+					rawData[k[:index]] = append(subList.([]interface{}), v)
+				} else {
+					rawData[k[:index]] = []interface{}{v}
+				}
+				delete(rawData, k)
+			}
+		}
+		data, err := json.Marshal(rawData)
+		if err != nil {
+			// TODO: Consider including response body in returned error, if deemed helpful.
+			return err
+		}
+		err = jsonutil.UnmarshalGraphQL(data, q)
 		if err != nil {
 			// TODO: Consider including response body in returned error, if deemed helpful.
 			return err
