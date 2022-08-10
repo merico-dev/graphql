@@ -146,7 +146,6 @@ func writeQuery(w io.Writer, t reflect.Type, inline bool, variables map[string]i
 
 			extendByKey, ifExtend := f.Tag.Lookup("graphql-extend")
 			if ifExtend && extendByKey == `true` {
-				fmt.Println(graphqlVar)
 				times := len(variables[graphqlVar].([]map[string]interface{}))
 				for i := 0; i < times; i++ {
 					if i != 0 {
