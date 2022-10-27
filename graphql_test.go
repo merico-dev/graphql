@@ -33,7 +33,10 @@ func TestClient_Query_MergeItems(t *testing.T) {
 			ID graphql.ID
 		} `graphql:"node(id: \"1\")"`
 	}
-	err := client.Query(context.Background(), &q, nil)
+	dataErrors, err := client.Query(context.Background(), &q, nil)
+	if dataErrors != nil {
+		t.Fatal("got dataErrors: non-nil, want: nil")
+	}
 	if err != nil {
 		t.Fatal("got error: non-nil, want: nil")
 	}
@@ -83,11 +86,14 @@ func TestClient_Query_partialDataWithErrorResponse(t *testing.T) {
 			ID graphql.ID
 		} `graphql:"node2: node(id: \"NotExist\")"`
 	}
-	err := client.Query(context.Background(), &q, nil)
-	if err == nil {
-		t.Fatal("got error: nil, want: non-nil")
+	dataErrors, err := client.Query(context.Background(), &q, nil)
+	if dataErrors == nil {
+		t.Fatal("got dataErrors: nil, want: non-nil")
 	}
-	if got, want := err.Error(), "Could not resolve to a node with the global id of 'NotExist'"; got != want {
+	if err != nil {
+		t.Fatal("got error: non-nil, want: nil")
+	}
+	if got, want := dataErrors[0].Error(), "Could not resolve to a node with the global id of 'NotExist'"; got != want {
 		t.Errorf("got error: %v, want: %v", got, want)
 	}
 	if q.Node1 == nil || q.Node1.ID != "MDEyOklzc3VlQ29tbWVudDE2OTQwNzk0Ng==" {
@@ -123,11 +129,14 @@ func TestClient_Query_noDataWithErrorResponse(t *testing.T) {
 			Name graphql.String
 		}
 	}
-	err := client.Query(context.Background(), &q, nil)
-	if err == nil {
-		t.Fatal("got error: nil, want: non-nil")
+	dataErrors, err := client.Query(context.Background(), &q, nil)
+	if dataErrors == nil {
+		t.Fatal("got dataErrors: nil, want: non-nil")
 	}
-	if got, want := err.Error(), "Field 'user' is missing required arguments: login"; got != want {
+	if err != nil {
+		t.Fatal("got error: non-nil, want: nil")
+	}
+	if got, want := dataErrors[0].Error(), "Field 'user' is missing required arguments: login"; got != want {
 		t.Errorf("got error: %v, want: %v", got, want)
 	}
 	if q.User.Name != "" {
@@ -147,7 +156,10 @@ func TestClient_Query_errorStatusCode(t *testing.T) {
 			Name graphql.String
 		}
 	}
-	err := client.Query(context.Background(), &q, nil)
+	dataErrors, err := client.Query(context.Background(), &q, nil)
+	if dataErrors != nil {
+		t.Fatal("got dataErrors: non-nil, want: nil")
+	}
 	if err == nil {
 		t.Fatal("got error: nil, want: non-nil")
 	}
@@ -178,7 +190,10 @@ func TestClient_Query_emptyVariables(t *testing.T) {
 			Name string
 		}
 	}
-	err := client.Query(context.Background(), &q, map[string]interface{}{})
+	dataErrors, err := client.Query(context.Background(), &q, map[string]interface{}{})
+	if dataErrors != nil {
+		t.Fatal(dataErrors)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

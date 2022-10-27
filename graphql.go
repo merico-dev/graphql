@@ -34,22 +34,22 @@ func NewClient(url string, httpClient *http.Client) *Client {
 // Query executes a single GraphQL query request,
 // with a query derived from q, populating the response into it.
 // q should be a pointer to struct that corresponds to the GraphQL schema.
-func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]interface{}) error {
+func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]interface{}) ([]DataError, error) {
 	query, variables := ConstructQuery(q, variables)
-	// TODO: Consider including response body in returned error, if deemed helpful.
-	data, dataErr := c.do(ctx, query, q, variables)
+	data, dataErrors, err := c.do(ctx, query, q, variables)
+	if err != nil {
+		return nil, err
+	}
 	if data != nil {
 		// merge XXX__N to XXX as a slice
 		rawData := map[string]interface{}{}
 		s, err := data.MarshalJSON()
 		if err != nil {
-			// TODO: Consider including response body in returned error, if deemed helpful.
-			return err
+			return nil, err
 		}
 		err = json.Unmarshal(s, &rawData)
 		if err != nil {
-			// TODO: Consider including response body in returned error, if deemed helpful.
-			return err
+			return nil, err
 		}
 		for k, v := range rawData {
 			index := strings.Index(k, `__`)
@@ -65,37 +65,36 @@ func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]
 		}
 		data, err := json.Marshal(rawData)
 		if err != nil {
-			// TODO: Consider including response body in returned error, if deemed helpful.
-			return err
+			return nil, err
 		}
 		err = jsonutil.UnmarshalGraphQL(data, q)
 		if err != nil {
-			// TODO: Consider including response body in returned error, if deemed helpful.
-			return err
+			return nil, err
 		}
 	}
-	return dataErr
+	return dataErrors, nil
 }
 
 // Mutate executes a single GraphQL mutation request,
 // with a mutation derived from m, populating the response into it.
 // m should be a pointer to struct that corresponds to the GraphQL schema.
-func (c *Client) Mutate(ctx context.Context, m interface{}, variables map[string]interface{}) error {
+func (c *Client) Mutate(ctx context.Context, m interface{}, variables map[string]interface{}) ([]DataError, error) {
 	query := ConstructMutation(m, variables)
-	// TODO: Consider including response body in returned error, if deemed helpful.
-	data, dataErr := c.do(ctx, query, m, variables)
+	data, dataErrors, err := c.do(ctx, query, m, variables)
+	if err != nil {
+		return nil, err
+	}
 	if data != nil {
-		err := jsonutil.UnmarshalGraphQL(*data, m)
+		err = jsonutil.UnmarshalGraphQL(*data, m)
 		if err != nil {
-			// TODO: Consider including response body in returned error, if deemed helpful.
-			return err
+			return nil, err
 		}
 	}
-	return dataErr
+	return dataErrors, nil
 }
 
 // do executes a single GraphQL operation.
-func (c *Client) do(ctx context.Context, query string, v interface{}, variables map[string]interface{}) (*json.RawMessage, error) {
+func (c *Client) do(ctx context.Context, query string, v interface{}, variables map[string]interface{}) (*json.RawMessage, []DataError, error) {
 	in := struct {
 		Query     string                 `json:"query"`
 		Variables map[string]interface{} `json:"variables,omitempty"`
@@ -106,37 +105,35 @@ func (c *Client) do(ctx context.Context, query string, v interface{}, variables 
 	var buf bytes.Buffer
 	err := json.NewEncoder(&buf).Encode(in)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	resp, err := ctxhttp.Post(ctx, c.httpClient, c.url, "application/json", &buf)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("non-200 OK status code: %v body: %q", resp.Status, body)
+		return nil, nil, fmt.Errorf("non-200 OK status code: %v body: %q", resp.Status, body)
 	}
 	var out struct {
 		Data   *json.RawMessage
-		Errors errors
+		Errors []DataError
 		//Extensions interface{} // Unused.
 	}
 	err = json.NewDecoder(resp.Body).Decode(&out)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(out.Errors) > 0 {
-		return out.Data, out.Errors
+		return out.Data, out.Errors, nil
 	}
-	return out.Data, nil
+	return out.Data, nil, nil
 }
 
-// errors represents the "errors" array in a response from a GraphQL server.
-// If returned via error interface, the slice is expected to contain at least 1 element.
-//
+// DataError represents the "errors" in a response from a GraphQL server.
 // Specification: https://facebook.github.io/graphql/#sec-Errors.
-type errors []struct {
+type DataError struct {
 	Message   string
 	Locations []struct {
 		Line   int
@@ -145,6 +142,6 @@ type errors []struct {
 }
 
 // Error implements error interface.
-func (e errors) Error() string {
-	return e[0].Message
+func (e DataError) Error() string {
+	return e.Message
 }
