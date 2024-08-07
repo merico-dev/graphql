@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"net/url"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -249,9 +250,9 @@ func TestConstructQuery(t *testing.T) {
 			},
 			want: `query($user__0__name:String!$user__1__name:String!$user__2__name:String!){user__0:user(name: $user__0__name){login},user__1:user(name: $user__1__name){login},user__2:user(name: $user__2__name){login}}`,
 			wantVariables: map[string]interface{}{
-				"users__0__name": String("a"),
-				"users__1__name": String("a"),
-				"users__2__name": String("a"),
+				"user__0__name": String("a"),
+				"user__1__name": String("b"),
+				"user__2__name": String("c"),
 			},
 		},
 	}
@@ -260,7 +261,7 @@ func TestConstructQuery(t *testing.T) {
 		if gotQuery != tc.want {
 			t.Errorf("\ngot:  %q\nwant: %q\n", gotQuery, tc.want)
 		}
-		if tc.wantVariables != nil && len(gotVariables) != len(tc.wantVariables) {
+		if tc.wantVariables != nil && !reflect.DeepEqual(tc.wantVariables, gotVariables) {
 			t.Errorf("\ngot:  %q\nwant: %q\n", gotVariables, tc.wantVariables)
 		}
 	}
