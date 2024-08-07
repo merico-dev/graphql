@@ -426,3 +426,43 @@ func TestUnmarshalGraphQL_arrayInsideInlineFragment(t *testing.T) {
 		t.Error("not equal")
 	}
 }
+
+func TestUnmarshalGraphQL_extended(t *testing.T) {
+	type pr struct {
+		Number graphql.Int
+		Nodes  []graphql.Int
+	}
+	type repo struct {
+		PullRequests []pr `graphql:"pullRequest(number: $number)" graphql-extend:"true"`
+	}
+	type query struct {
+		Repository repo `graphql:"repository(owner: $owner, name: $name)"`
+	}
+	var got query
+	err := jsonutil.UnmarshalGraphQL([]byte(`{
+		"repository": {
+			"pullRequest__0": {
+				"number": 1,
+				"nodes": [1, 3]
+			},
+			"pullRequest__1": {
+				"number": 2,
+				"nodes": [2, 4]
+			}
+		}
+	}`), &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := query{
+		Repository: repo{
+			PullRequests: []pr{
+				{Number: 1, Nodes: []graphql.Int{1, 3}},
+				{Number: 2, Nodes: []graphql.Int{2, 4}},
+			},
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Error("not equal")
+	}
+}

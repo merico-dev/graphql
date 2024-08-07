@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/merico-dev/graphql/internal/jsonutil"
 	"golang.org/x/net/context/ctxhttp"
@@ -41,33 +40,7 @@ func (c *Client) Query(ctx context.Context, q interface{}, variables map[string]
 		return nil, err
 	}
 	if data != nil {
-		// merge XXX__N to XXX as a slice
-		rawData := map[string]interface{}{}
-		s, err := data.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(s, &rawData)
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range rawData {
-			index := strings.Index(k, `__`)
-			if index != -1 {
-				subList, ok := rawData[k[:index]]
-				if ok {
-					rawData[k[:index]] = append(subList.([]interface{}), v)
-				} else {
-					rawData[k[:index]] = []interface{}{v}
-				}
-				delete(rawData, k)
-			}
-		}
-		data, err := json.Marshal(rawData)
-		if err != nil {
-			return nil, err
-		}
-		err = jsonutil.UnmarshalGraphQL(data, q)
+		err = jsonutil.UnmarshalGraphQL(*data, q)
 		if err != nil {
 			return nil, err
 		}

@@ -260,8 +260,23 @@ func fieldByGraphQLName(v reflect.Value, name string) reflect.Value {
 			// Skip unexported field.
 			continue
 		}
-		if hasGraphQLName(v.Type().Field(i), name) {
-			return v.Field(i)
+
+		// Decode extended field
+		typeField := v.Type().Field(i)
+		// Extended fields have a suffix that we need to remove.
+		extend, ok := typeField.Tag.Lookup("graphql-extend")
+		extended := ok && extend == "true"
+		if extended {
+			name = name[:strings.LastIndex(name, "__")]
+		}
+
+		if hasGraphQLName(typeField, name) {
+			f := v.Field(i)
+			if extended && f.Kind() == reflect.Slice {
+				f.Set(reflect.Append(f, reflect.Zero(f.Type().Elem()))) // f = append(f, T).
+				f = f.Index(f.Len() - 1)
+			}
+			return f
 		}
 	}
 	return reflect.Value{}
