@@ -17,7 +17,7 @@ import (
 	graphqlserver "github.com/graph-gophers/graphql-go"
 	"github.com/graph-gophers/graphql-go/example/starwars"
 	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/merico-dev/graphql"
+	"github.com/merico-ai/graphql"
 )
 
 func main() {
@@ -73,9 +73,14 @@ func run() error {
 	variables := map[string]interface{}{
 		"characterID": graphql.ID("1003"),
 	}
-	err = client.Query(context.Background(), &q, variables)
+	dataErrors, err := client.Query(context.Background(), &q, variables)
 	if err != nil {
 		return err
+	}
+	if len(dataErrors) > 0 {
+		for _, e := range dataErrors {
+			log.Printf("GraphQL data error: %s", e.Message)
+		}
 	}
 	print(q)
 

@@ -1,4 +1,4 @@
-module github.com/merico-dev/graphql
+module github.com/merico-ai/graphql
 
 go 1.17
 

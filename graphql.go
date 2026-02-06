@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/merico-dev/graphql/internal/jsonutil"
+	"github.com/merico-ai/graphql/internal/jsonutil"
 	"golang.org/x/net/context/ctxhttp"
 )
 

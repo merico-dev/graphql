@@ -3,7 +3,7 @@ package graphql_test
 import (
 	"testing"
 
-	"github.com/merico-dev/graphql"
+	"github.com/merico-ai/graphql"
 )
 
 func TestNewScalars(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/merico-dev/graphql/ident"
+	"github.com/merico-ai/graphql/ident"
 )
 
 func Example_lowerCamelCaseToMixedCaps() {

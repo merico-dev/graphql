@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/merico-dev/graphql"
+	"github.com/merico-ai/graphql"
 )
 
 func TestClient_Query_MergeItems(t *testing.T) {

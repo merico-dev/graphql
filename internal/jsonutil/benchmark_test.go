@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/merico-dev/graphql"
-	"github.com/merico-dev/graphql/internal/jsonutil"
+	"github.com/merico-ai/graphql"
+	"github.com/merico-ai/graphql/internal/jsonutil"
 )
 
 func TestUnmarshalGraphQL_benchmark(t *testing.T) {
