@@ -17,10 +17,10 @@ func TestClient_Query_MergeItems(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		mustWrite(w, `{
 			"data": {
-				"node__1": {
+				"node__0": {
 					"id": "1"
 				},
-				"node__2": {
+				"node__1": {
 					"id": "2"
 				}
 			}
@@ -31,9 +31,15 @@ func TestClient_Query_MergeItems(t *testing.T) {
 	var q struct {
 		AnotherName []struct {
 			ID graphql.ID
-		} `graphql:"node(id: \"1\")"`
+		} `graphql:"node(id: $id)" graphql-extend:"true"`
 	}
-	dataErrors, err := client.Query(context.Background(), &q, nil)
+	variables := map[string]interface{}{
+		"node": []map[string]interface{}{
+			{"id": "1"},
+			{"id": "2"},
+		},
+	}
+	dataErrors, err := client.Query(context.Background(), &q, variables)
 	if dataErrors != nil {
 		t.Fatal("got dataErrors: non-nil, want: nil")
 	}
@@ -44,7 +50,7 @@ func TestClient_Query_MergeItems(t *testing.T) {
 		t.Fatal("q.AnotherName got error: nil, want: non-nil")
 	}
 	if q.AnotherName[0].ID != "1" || q.AnotherName[1].ID != "2" {
-		t.Errorf("got wrong q.Node1: %v", q.AnotherName)
+		t.Errorf("got wrong q.AnotherName: %v", q.AnotherName)
 	}
 }
 
